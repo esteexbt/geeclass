@@ -1,0 +1,16 @@
+[toolchain]
+anchor_version = "0.32.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+geeclass = "H6Ue9aCKtRKbGM2gBH2obMeCqBniCsSkgV5QoPFLL6XF"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "echo 'see README'"
