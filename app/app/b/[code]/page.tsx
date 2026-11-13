@@ -10,6 +10,7 @@ import { entryExists, joinBattleIx } from "@/lib/geeclass";
 import { explorerTx, fromBase, money, PRIZE_SYMBOL, splitLabel } from "@/lib/format";
 import { friendlyError, sendIxs } from "@/lib/tx";
 import { useBattle } from "@/lib/useBattle";
+import { readRes } from "@/lib/http";
 
 export default function PlayerPage({ params }: { params: Promise<{ code: string }> }) {
   const { code: raw } = use(params);
@@ -54,14 +55,14 @@ export default function PlayerPage({ params }: { params: Promise<{ code: string 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: wallet.publicKey.toBase58(), name: clean, joinTx: sig }),
         });
-        const d = await r.json();
+        const d = await readRes<{ token: string; error?: string }>(r);
         if (r.ok) {
           localStorage.setItem(tokenKey, d.token);
           setToken(d.token);
           await refresh();
           return;
         }
-        if (r.status !== 409 || /started/.test(d.error)) throw new Error(d.error);
+        if (r.status !== 409 || /started/.test(d.error ?? "")) throw new Error(d.error);
         await new Promise((res) => setTimeout(res, 1500));
       }
       throw new Error("Your seat is reserved onchain but the lobby didn't confirm it. Tap Join again.");
@@ -82,8 +83,8 @@ export default function PlayerPage({ params }: { params: Promise<{ code: string 
         body: JSON.stringify({ wallet: me, token, qi: state.qIndex, choice }),
       });
       if (!r.ok) {
-        const d = await r.json();
-        setErr(d.error);
+        const d = await readRes(r);
+        setErr(d.error ?? "That answer didn't go through.");
       }
       refresh();
     } catch (e) {

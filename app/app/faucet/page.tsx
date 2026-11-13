@@ -7,6 +7,7 @@ import { Footer, Header } from "@/components/ui";
 import WalletButton from "@/components/WalletButton";
 import { explorerTx, fromBase, OWN_FAUCET, PRIZE_MINT, PRIZE_SYMBOL } from "@/lib/format";
 import { friendlyError } from "@/lib/tx";
+import { readRes } from "@/lib/http";
 
 export default function Faucet() {
   const { connection } = useConnection();
@@ -55,7 +56,7 @@ export default function Faucet() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ wallet: publicKey.toBase58() }),
       });
-      const d = await r.json();
+      const d = await readRes<{ amount: number; signature: string }>(r);
       if (!r.ok) throw new Error(d.error);
       await load();
       setMsg(`${d.amount} test ${PRIZE_SYMBOL} sent. `);

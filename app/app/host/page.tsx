@@ -11,6 +11,7 @@ import { createBattleIx, newBattleId } from "@/lib/geeclass";
 import type { ChainInfo, QuizQuestion } from "@/lib/game";
 import { PRIZE_DECIMALS, PRIZE_MINT, PRIZE_SYMBOL, fromBase, splitLabel, toBase } from "@/lib/format";
 import { friendlyError, sendIxs } from "@/lib/tx";
+import { readRes } from "@/lib/http";
 
 type Step = 1 | 2 | 3;
 
@@ -81,7 +82,7 @@ export default function HostNew() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: notes, count, difficulty }),
       });
-      const data = await res.json();
+      const data = await readRes<{ questions: QuizQuestion[]; source: string }>(res);
       if (!res.ok) throw new Error(data.error);
       setQuestions(data.questions);
       setSource(data.source);
@@ -118,7 +119,7 @@ export default function HostNew() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, sponsorName, questions, secondsPerQuestion: seconds }),
       }).then(async (r) => {
-        const d = await r.json();
+        const d = await readRes<{ code: string; hostKey: string; quizCommit: string }>(r);
         if (!r.ok) throw new Error(d.error);
         return d as { code: string; hostKey: string; quizCommit: string };
       });
@@ -169,7 +170,7 @@ export default function HostNew() {
           body: JSON.stringify({ hostKey: draft.hostKey, chain }),
         });
         if (r.ok) return router.push(`/host/${draft.code}`);
-        if (r.status !== 409 && r.status !== 502) throw new Error((await r.json()).error);
+        if (r.status !== 409 && r.status !== 502) throw new Error((await readRes(r)).error);
         await new Promise((res) => setTimeout(res, 2000));
       }
       throw new Error("The prize is locked, but the lobby didn't open. Refresh this page in a minute.");

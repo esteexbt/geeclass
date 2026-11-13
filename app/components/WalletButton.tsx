@@ -1,7 +1,8 @@
 "use client";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState } from "@solana/wallet-adapter-base";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { short } from "@/lib/format";
 
 export function useWalletPicker() {
@@ -13,6 +14,8 @@ export default function WalletButton({ label = "Connect wallet", block = false }
   const { wallets, select, publicKey, disconnect, connecting } = useWallet();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   if (publicKey) {
     return (
@@ -31,7 +34,7 @@ export default function WalletButton({ label = "Connect wallet", block = false }
       <button className={`btn sm ${block ? "block" : ""}`} onClick={() => setOpen(true)} disabled={connecting}>
         {connecting ? "Connecting…" : label}
       </button>
-      {open && (
+      {open && mounted && createPortal(
         <div className="modal-back" role="dialog" aria-modal="true" aria-label="Choose a wallet" onClick={() => setOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="spread">
@@ -69,7 +72,9 @@ export default function WalletButton({ label = "Connect wallet", block = false }
             {error && <p className="error mt-1">{error}</p>}
             <p className="hint mt-2">GeeClass is on Solana devnet. Use test funds only.</p>
           </div>
-        </div>
+        </div>,
+        // Rendered on <body> so no page section can ever cover the wallet picker.
+        document.body,
       )}
     </>
   );

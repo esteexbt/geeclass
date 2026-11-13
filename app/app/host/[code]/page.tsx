@@ -13,6 +13,7 @@ import { finishLine, lobbyLine, questionLine, revealLine } from "@/lib/hostLines
 import { friendlyError, sendIxs } from "@/lib/tx";
 import { useBattle } from "@/lib/useBattle";
 import { useVoice } from "@/lib/useVoice";
+import { readRes } from "@/lib/http";
 
 export default function HostStage({ params }: { params: Promise<{ code: string }> }) {
   const { code: raw } = use(params);
@@ -72,7 +73,7 @@ function Stage({ code, hostKey }: { code: string; hostKey: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hostKey, action }),
       });
-      const d = await r.json();
+      const d = await readRes(r);
       if (!r.ok) throw new Error(d.error);
       await refresh();
     } catch (e) {
@@ -94,7 +95,7 @@ function Stage({ code, hostKey }: { code: string; hostKey: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hostKey, action: "plan" }),
       }).then(async (r) => {
-        const d = await r.json();
+        const d = await readRes(r);
         if (!r.ok) throw new Error(d.error);
         return d as { winners: { wallet: string }[]; resultsHash: string };
       });

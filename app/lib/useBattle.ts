@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicState, QuizQuestion } from "./game";
+import { readRes } from "./http";
 
 export type BattleView = PublicState & { isHost?: boolean; draftQuiz?: QuizQuestion[] };
 
@@ -19,7 +20,7 @@ export function useBattle(code: string, opts: { wallet?: string; hostKey?: strin
     try {
       const t0 = Date.now();
       const res = await fetch(`/api/battles/${code}?${qs}`, { cache: "no-store" });
-      const data = await res.json();
+      const data = await readRes<BattleView & { serverNow: number }>(res);
       if (!res.ok) throw new Error(data.error || "Couldn't load battle");
       const t1 = Date.now();
       setSkew(data.serverNow - (t0 + t1) / 2);
