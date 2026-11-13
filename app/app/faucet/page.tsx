@@ -5,7 +5,7 @@ import { getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { useCallback, useEffect, useState } from "react";
 import { Footer, Header } from "@/components/ui";
 import WalletButton from "@/components/WalletButton";
-import { explorerTx, fromBase, PRIZE_MINT, PRIZE_SYMBOL } from "@/lib/format";
+import { explorerTx, fromBase, OWN_FAUCET, PRIZE_MINT, PRIZE_SYMBOL } from "@/lib/format";
 import { friendlyError } from "@/lib/tx";
 
 export default function Faucet() {
@@ -85,12 +85,22 @@ export default function Faucet() {
               </p>
               <div className="row">
                 <button className="btn" disabled={!!busy} onClick={getSol}>{busy === "sol" ? "Requesting…" : "Get 1 devnet SOL"}</button>
-                <button className="btn money" disabled={!!busy || !PRIZE_MINT} onClick={getUsdc}>{busy === "usdc" ? "Minting…" : `Get 100 test ${PRIZE_SYMBOL}`}</button>
+                {OWN_FAUCET ? (
+                  <button className="btn money" disabled={!!busy} onClick={getUsdc}>{busy === "usdc" ? "Minting…" : `Get 100 test ${PRIZE_SYMBOL}`}</button>
+                ) : (
+                  <a className="btn money" href="https://faucet.circle.com" target="_blank" rel="noreferrer">Get devnet USDC from Circle</a>
+                )}
               </div>
               {msg && (
                 <p className="notice">
                   {msg}
                   {txLink && <a href={explorerTx(txLink)} target="_blank" rel="noreferrer">View transaction</a>}
+                </p>
+              )}
+              {!OWN_FAUCET && (
+                <p className="hint">
+                  On Circle&apos;s faucet choose USDC and Solana Devnet, then paste your address.{" "}
+                  <button className="linkish" onClick={() => navigator.clipboard?.writeText(publicKey.toBase58())}>Copy my address</button>
                 </p>
               )}
               <p className="hint">

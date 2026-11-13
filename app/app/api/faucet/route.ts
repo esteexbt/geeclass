@@ -14,6 +14,7 @@ const lastDrip = new Map<string, number>();
 export async function POST(req: Request) {
   const secret = process.env.FAUCET_SECRET_KEY;
   const mintAddr = process.env.NEXT_PUBLIC_PRIZE_MINT;
+  if (process.env.NEXT_PUBLIC_OWN_FAUCET !== "1") return fail("Get devnet USDC at faucet.circle.com.", 503);
   if (!secret || !mintAddr) return fail("The test-USDC faucet isn't set up on this server.", 503);
   if (!(process.env.NEXT_PUBLIC_RPC_URL ?? "devnet").includes("devnet")) return fail("Faucet is devnet only.", 403);
 

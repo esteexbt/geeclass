@@ -1,6 +1,8 @@
 export const PRIZE_SYMBOL = process.env.NEXT_PUBLIC_PRIZE_SYMBOL || "USDC";
 export const PRIZE_DECIMALS = Number(process.env.NEXT_PUBLIC_PRIZE_DECIMALS || 6);
-export const PRIZE_MINT = process.env.NEXT_PUBLIC_PRIZE_MINT || "";
+// Circle's official devnet USDC by default (free at faucet.circle.com).
+export const PRIZE_MINT = process.env.NEXT_PUBLIC_PRIZE_MINT || "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+export const OWN_FAUCET = process.env.NEXT_PUBLIC_OWN_FAUCET === "1";
 export const CLUSTER = (process.env.NEXT_PUBLIC_RPC_URL || "devnet").includes("mainnet") ? "mainnet-beta" : "devnet";
 
 export function fromBase(amount: string | bigint, decimals = PRIZE_DECIMALS) {

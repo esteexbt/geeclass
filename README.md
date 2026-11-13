@@ -9,7 +9,7 @@ Built solo for the Dev3pack Global Hackathon 2026.
 - **Live demo:** _add link after deploy_
 - **Demo video (under 3 min):** _add link_
 - **Program (devnet):** `H6Ue9aCKtRKbGM2gBH2obMeCqBniCsSkgV5QoPFLL6XF` · [Explorer](https://explorer.solana.com/address/H6Ue9aCKtRKbGM2gBH2obMeCqBniCsSkgV5QoPFLL6XF?cluster=devnet)
-- **Test USDC mint (devnet):** `MINT_AFTER_SETUP`
+- **Prize token:** Circle devnet USDC `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` (free at [faucet.circle.com](https://faucet.circle.com))
 
 ## The problem
 
@@ -57,11 +57,10 @@ Requirements: Node 20+, a Solana wallet on devnet.
 cd app
 cp .env.example .env.local
 npm install
-npm run setup:devnet   # creates a free test-USDC mint; paste the printed lines into .env.local
 npm run dev
 ```
 
-Open http://localhost:3000, get devnet SOL and test USDC on the **Faucet** page, then host a battle. Join from a second wallet (another browser profile or your phone) to play.
+Open http://localhost:3000, get devnet SOL on the **Faucet** page and devnet USDC from faucet.circle.com, then host a battle. Join from a second wallet (another browser profile or your phone) to play.
 
 Tests: `npm test` (game rules, scoring, answer-key secrecy, quiz validation) and `cargo test` in the repo root (payout split and rounding).
 
