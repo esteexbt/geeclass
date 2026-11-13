@@ -227,6 +227,10 @@ function Stage({ code, hostKey }: { code: string; hostKey: string }) {
               <span className="muted">Question {state.qIndex + 1} of {state.total}</span>
               <span className="muted">{state.answeredThisQ} / {state.players.length} answered</span>
             </div>
+            <p className="host-hint">
+              This is the big screen. Players answer on their own phones at{" "}
+              <strong>{joinUrl.replace(/^https?:\/\//, "")}</strong>
+            </p>
             {state.phase === "question" ? (
               <Countdown endsAt={state.qEndsAt} total={state.secondsPerQuestion} now={now} />
             ) : (

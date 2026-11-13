@@ -49,6 +49,7 @@ export default function HostNew() {
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [source, setSource] = useState("");
+  const [aiWarning, setAiWarning] = useState("");
   const [seconds, setSeconds] = useState(20);
   const [prize, setPrize] = useState("10");
   const [split, setSplit] = useState(0);
@@ -82,10 +83,11 @@ export default function HostNew() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: notes, count, difficulty }),
       });
-      const data = await readRes<{ questions: QuizQuestion[]; source: string }>(res);
+      const data = await readRes<{ questions: QuizQuestion[]; source: string; warning?: string }>(res);
       if (!res.ok) throw new Error(data.error);
       setQuestions(data.questions);
       setSource(data.source);
+      setAiWarning(data.warning ?? "");
       setStep(2);
     } catch (e) {
       setError(friendlyError(e));
@@ -252,10 +254,11 @@ export default function HostNew() {
           <div className="stack">
             <div className="spread">
               <p className="muted">
-                {questions.length} questions{source === "offline" ? " from the built-in generator" : ` written by AI (${source})`}. Tap a bubble to change the right answer.
+                {questions.length} questions{source === "offline" ? " from the basic generator" : ` written by AI (${source})`}. Tap a bubble to change the right answer.
               </p>
               <button className="linkish" onClick={() => setStep(1)}>Back to material</button>
             </div>
+            {aiWarning && <p className="notice"><strong>Heads up.</strong> {aiWarning}</p>}
             {questions.map((q, i) => (
               <div className="qcard" key={i}>
                 <div className="spread">

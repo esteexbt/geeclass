@@ -13,6 +13,8 @@ export interface GenerateOptions {
 export interface GenerateResult {
   questions: QuizQuestion[];
   source: "gemini" | "openai" | "anthropic" | "offline";
+  /** Set when no AI service worked and the basic generator was used instead. */
+  warning?: string;
 }
 
 const MAX_INPUT = 24_000;
@@ -24,6 +26,8 @@ Rules:
 - Use only facts found in the material. Never invent facts.
 - Each question has exactly 4 options and exactly one correct answer.
 - Wrong options must be plausible to a student who skimmed the material.
+- Ignore administrative text (dates, course codes, instructions to students, disclaimers). Ask only about subject knowledge.
+- Never ask the student to fill a gap with a single copied word; test understanding of ideas.
 - Keep questions under 140 characters and options under 70 characters.
 - "explain" is one short sentence saying why the answer is right.
 Reply with JSON only, shaped like:
@@ -76,8 +80,25 @@ function randInt(n: number) {
   return b[0] % n;
 }
 
+// Newest first; older names are tried only if Google has retired a model (404).
+const GEMINI_MODELS = [process.env.GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"].filter(
+  (m): m is string => !!m,
+);
+
 async function viaGemini(o: GenerateOptions, key: string) {
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  let last = "";
+  for (const model of GEMINI_MODELS) {
+    try {
+      return await geminiOnce(o, key, model);
+    } catch (e) {
+      last = e instanceof Error ? e.message : String(e);
+      if (!/\b404\b|not found|not supported/i.test(last)) throw e;
+    }
+  }
+  throw new Error(last || "No Gemini model available");
+}
+
+async function geminiOnce(o: GenerateOptions, key: string, model: string) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {
@@ -89,7 +110,7 @@ async function viaGemini(o: GenerateOptions, key: string) {
       }),
     },
   );
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw new Error(`Gemini ${model} ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text as string;
 }
@@ -136,6 +157,7 @@ export async function generateQuiz(o: GenerateOptions): Promise<GenerateResult> 
     ["openai", process.env.OPENAI_API_KEY, viaOpenAI],
     ["anthropic", process.env.ANTHROPIC_API_KEY, viaAnthropic],
   ];
+  const errors: string[] = [];
   for (const [source, key, fn] of tries) {
     if (!key) continue;
     try {
@@ -143,9 +165,13 @@ export async function generateQuiz(o: GenerateOptions): Promise<GenerateResult> 
       return { questions: cleanQuestions(extractJson(raw), o.count), source };
     } catch (e) {
       console.error(`[quiz] ${source} failed, trying next`, e);
+      errors.push(`${source}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 220));
     }
   }
-  return { questions: offlineQuiz(o.text, o.count), source: "offline" };
+  const warning = errors.length
+    ? `The AI couldn't write questions (${errors.join(" | ")}). These are basic gap-fill questions from your notes; edit them, or fix the AI key and write again.`
+    : "No AI key is set on the server, so these are basic gap-fill questions from your notes. Add GEMINI_API_KEY for exam-style questions.";
+  return { questions: offlineQuiz(o.text, o.count), source: "offline", warning };
 }
 
 // ---------- offline generator ----------
@@ -187,13 +213,25 @@ export function offlineQuiz(text: string, count: number): QuizQuestion[] {
 
   for (const s of pool) {
     if (out.length >= count) break;
+    if (/\b(these notes|this note|you|your|please|ensure|make sure)\b/i.test(s)) continue; // skip instructions, keep content
+    const firstWord = s.split(" ")[0];
     const term = terms.find(
-      (t) => !used.has(t.toLowerCase()) && new RegExp(`\\b${escapeRe(t)}\\b`).test(s),
+      (t) =>
+        !used.has(t.toLowerCase()) &&
+        t !== firstWord &&
+        !(t.length > 3 && t === t.toUpperCase() && /[A-Z]/.test(t)) &&
+        new RegExp(`\\b${escapeRe(t)}\\b`).test(s),
     );
     if (!term) continue;
     const isNum = /^\d/.test(term);
     const distractors = terms
-      .filter((t) => t.toLowerCase() !== term.toLowerCase() && /^\d/.test(t) === isNum && !s.includes(t))
+      .filter(
+        (t) =>
+          t.toLowerCase() !== term.toLowerCase() &&
+          /^\d/.test(t) === isNum &&
+          !s.includes(t) &&
+          !(t.length > 3 && t === t.toUpperCase() && /[A-Z]/.test(t)),
+      )
       .slice(0, 12);
     if (distractors.length < 3) continue;
     const picks = pickN(distractors, 3);

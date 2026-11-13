@@ -291,6 +291,8 @@ footer.foot { border-top: 2px solid var(--form); padding: 20px 0 40px; font-size
 .stage .sheet { background: var(--ink-2); border-color: rgba(255,255,255,0.18); }
 .stage .pot { color: var(--ink); }
 
+.host-hint { font-size: 0.9rem; color: #b9bcd8; border: 1px dashed rgba(255,255,255,0.25); border-radius: 8px; padding: 8px 12px; }
+.host-hint strong { color: var(--highlight); }
 .opts-grid { display: grid; gap: 10px; }
 @media (min-width: 760px) { .opts-grid.wide { grid-template-columns: 1fr 1fr; } }
 

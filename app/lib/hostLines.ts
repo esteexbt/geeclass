@@ -9,6 +9,16 @@ export function lobbyLine(s: PublicState) {
   return `Welcome to ${s.title}. ${s.players.length} players in the hall. Pens down, phones up, it's about to start.`;
 }
 
+/** Turns on-screen text into something a voice can read naturally. */
+export function speakable(t: string) {
+  return t
+    .replace(/^Fill the gap:\s*"?/i, "Fill in the blank. ")
+    .replace(/_{2,}/g, " blank ")
+    .replace(/["“”]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function questionLine(s: PublicState) {
   if (!s.question) return "";
   const n = s.qIndex + 1;
@@ -24,8 +34,8 @@ export function questionLine(s: PublicState) {
           ],
           n,
         );
-  const opts = s.question.options.map((o, i) => `${"ABCD"[i]}: ${o}`).join(". ");
-  return `${lead} ${s.question.q} ${opts}.`;
+  const opts = s.question.options.map((o, i) => `${"ABCD"[i]}: ${speakable(o)}`).join(". ");
+  return `${lead} ${speakable(s.question.q)} ${opts}.`;
 }
 
 export function revealLine(s: PublicState) {
@@ -33,7 +43,7 @@ export function revealLine(s: PublicState) {
   if (!q || q.answer === undefined) return "";
   const right = q.counts?.[q.answer] ?? 0;
   const total = (q.counts ?? []).reduce((a, b) => a + b, 0);
-  const answer = `The answer is ${"ABCD"[q.answer]}, ${q.options[q.answer]}.`;
+  const answer = `The answer is ${"ABCD"[q.answer]}, ${speakable(q.options[q.answer])}.`;
   const leader = s.board[0];
 
   let mood: string;
