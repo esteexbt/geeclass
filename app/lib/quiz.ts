@@ -80,8 +80,8 @@ function randInt(n: number) {
   return b[0] % n;
 }
 
-// Newest first; older names are tried only if Google has retired a model (404).
-const GEMINI_MODELS = [process.env.GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"].filter(
+// Fast models first. A model is skipped if Google has retired it (404) or it is too slow (timeout).
+const GEMINI_MODELS = [process.env.GEMINI_MODEL, "gemini-3.5-flash-lite", "gemini-2.5-flash"].filter(
   (m): m is string => !!m,
 );
 
@@ -92,13 +92,18 @@ async function viaGemini(o: GenerateOptions, key: string) {
       return await geminiOnce(o, key, model);
     } catch (e) {
       last = e instanceof Error ? e.message : String(e);
-      if (!/\b404\b|not found|not supported/i.test(last)) throw e;
+      if (!/\b404\b|not found|not supported|timeout|aborted/i.test(last)) throw e;
     }
   }
   throw new Error(last || "No Gemini model available");
 }
 
+/** Each AI call gets this long before we move on, so the page never hangs. */
+const CALL_MS = 22_000;
+
 async function geminiOnce(o: GenerateOptions, key: string, model: string) {
+  // 2.5 models "think" before answering by default; turning that off makes them several times faster.
+  const thinking = model.startsWith("gemini-2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {};
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {
@@ -106,8 +111,9 @@ async function geminiOnce(o: GenerateOptions, key: string, model: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt(o) }] }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.6 },
+        generationConfig: { responseMimeType: "application/json", temperature: 0.6, ...thinking },
       }),
+      signal: AbortSignal.timeout(CALL_MS),
     },
   );
   if (!res.ok) throw new Error(`Gemini ${model} ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -118,6 +124,7 @@ async function geminiOnce(o: GenerateOptions, key: string, model: string) {
 async function viaOpenAI(o: GenerateOptions, key: string) {
   const base = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
   const res = await fetch(`${base}/chat/completions`, {
+    signal: AbortSignal.timeout(CALL_MS),
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
@@ -134,6 +141,7 @@ async function viaOpenAI(o: GenerateOptions, key: string) {
 
 async function viaAnthropic(o: GenerateOptions, key: string) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
+    signal: AbortSignal.timeout(CALL_MS),
     method: "POST",
     headers: {
       "Content-Type": "application/json",

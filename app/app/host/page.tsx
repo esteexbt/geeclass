@@ -77,11 +77,14 @@ export default function HostNew() {
   async function generate() {
     setError("");
     setBusy("Reading your notes and writing questions…");
+    const slow = setTimeout(() => setBusy("Still writing. The AI can take up to 30 seconds…"), 9000);
+    const slower = setTimeout(() => setBusy("Almost there. If the AI is busy, you'll get basic questions instead…"), 30000);
     try {
       const res = await fetch("/api/quiz/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: notes, count, difficulty }),
+        signal: AbortSignal.timeout(65_000),
       });
       const data = await readRes<{ questions: QuizQuestion[]; source: string; warning?: string }>(res);
       if (!res.ok) throw new Error(data.error);
@@ -90,8 +93,14 @@ export default function HostNew() {
       setAiWarning(data.warning ?? "");
       setStep(2);
     } catch (e) {
-      setError(friendlyError(e));
+      setError(
+        e instanceof DOMException && e.name === "TimeoutError"
+          ? "Writing questions took too long. Try again, or ask for fewer questions."
+          : friendlyError(e),
+      );
     } finally {
+      clearTimeout(slow);
+      clearTimeout(slower);
       setBusy("");
     }
   }
